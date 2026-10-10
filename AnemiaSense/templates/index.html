@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f4">
+  <title>AnemiaSense | Research preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght,SOFT,WONK@9..144,500,20,1;9..144,600,20,1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="AnemiaSense home">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span>Anemia<span class="brand-light">Sense</span></span>
+    </a>
+    <div class="topbar-meta"><span class="status-dot"></span> Research preview <span class="meta-divider"></span> Educational use only</div>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">HEMATOLOGY · MODEL EXPLORER</p>
+        <h1 id="page-title">A closer look at<br><span>blood patterns.</span></h1>
+        <p class="intro-copy">Explore how a machine-learning model reads a set of blood parameters. Every result here is an educational estimate, never a diagnosis.</p>
+      </div>
+      <div class="model-chip"><span class="chip-icon" aria-hidden="true">✳</span><span><small>ACTIVE MODEL</small><strong>{{ metrics.best_model }}</strong></span><span class="chip-score">F1 {{ '%.2f'|format(best.f1) }}</span></div>
+    </section>
+
+    <section class="workspace" aria-label="Prediction workspace">
+      <div class="input-panel">
+        <div class="section-heading">
+          <div><span class="step-number">01</span><h2>Patient profile</h2></div>
+          <span class="required-note">ALL FIELDS REQUIRED</span>
+        </div>
+        <form id="prediction-form">
+          <div class="field-grid">
+            <label class="field field-wide">Gender code
+              <select name="gender" required>
+                <option value="" disabled selected>Select source code</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+              </select>
+            </label>
+            <label class="field">Age <span class="unit">fixed at 35</span>
+              <input name="age" type="number" value="35" aria-label="Age fixed at 35 because it is unavailable in the dataset" readonly>
+            </label>
+            <label class="field">Hemoglobin <span class="unit">g/dL</span>
+              <input name="hemoglobin" type="number" min="1" max="30" step="0.1" placeholder="e.g. 12.8" required>
+            </label>
+            <label class="field">MCH <span class="unit">pg</span>
+              <input name="mch" type="number" min="1" max="60" step="0.1" placeholder="e.g. 27.4" required>
+            </label>
+            <label class="field">MCHC <span class="unit">g/dL</span>
+              <input name="mchc" type="number" min="1" max="60" step="0.1" placeholder="e.g. 33.1" required>
+            </label>
+            <label class="field">MCV <span class="unit">fL</span>
+              <input name="mcv" type="number" min="1" max="200" step="0.1" placeholder="e.g. 86.0" required>
+            </label>
+          </div>
+          <button class="submit-button" type="submit"><span>Run pattern analysis</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+          <p class="form-error" id="form-error" role="alert"></p>
+        </form>
+      </div>
+
+      <aside class="result-panel" aria-live="polite">
+        <div class="result-topline"><span class="step-number">02</span><span>MODEL OUTPUT</span><span class="live-indicator"><i></i> READY</span></div>
+        <div class="result-empty" id="result-empty">
+          <div class="pulse-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          <h2>Your result<br>will appear here.</h2>
+          <p>Enter the profile values to explore a model-generated pattern estimate.</p>
+        </div>
+        <div class="result-content" id="result-content" hidden>
+          <p class="result-kicker">PATTERN ESTIMATE</p>
+          <h2 id="result-label"></h2>
+          <div class="confidence-row"><span>Model probability</span><strong id="result-probability"></strong></div>
+          <div class="confidence-track"><span id="confidence-fill"></span></div>
+          <p class="result-notice" id="result-notice"></p>
+        </div>
+        <div class="result-foot"><span>MODEL</span><strong>{{ metrics.best_model }}</strong><span class="result-foot-score">HOLDOUT F1 {{ '%.2f'|format(best.f1) }}</span></div>
+      </aside>
+    </section>
+
+    <section class="insights" aria-labelledby="insights-title">
+      <div class="insights-heading"><div><p class="eyebrow">MODEL SNAPSHOT</p><h2 id="insights-title">What the dataset shows</h2></div><span class="dataset-badge"><i></i>{{ metrics.data_source }}</span></div>
+      <div class="insights-grid">
+        <div class="chart-wrap"><img src="{{ url_for('static', filename='generated/hemoglobin_distribution.png') }}" alt="Hemoglobin distribution split by anemia label"></div>
+        <div class="metric-column">
+          <div class="metric"><span>Records analyzed</span><strong>{{ metrics.data_summary.rows }}</strong></div>
+          <div class="metric"><span>Models compared</span><strong>{{ metrics.models|length }}</strong></div>
+          <div class="metric"><span>Best holdout F1</span><strong>{{ '%.2f'|format(best.f1) }}</strong></div>
+          <p class="metric-caveat">Scores use a single stratified holdout split on {{ metrics.data_source|lower }}. They are not evidence of clinical performance.</p>
+        </div>
+      </div>
+      <div class="model-list" aria-label="Model comparison">
+        {% for model_name, score in metrics.models.items() %}
+        <div class="model-row"><span>{{ model_name }}</span><div class="model-track"><span style="width: {{ (score.f1 * 100)|round|int }}%"></span></div><strong>{{ '%.2f'|format(score.f1) }}</strong></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <footer class="disclaimer"><span class="disclaimer-mark" aria-hidden="true">i</span><p><strong>Not for clinical use.</strong> AnemiaSense is an educational prototype using the provided anemia dataset. Its predictions are not diagnoses and must not be used to make health decisions. Consult a qualified healthcare professional for medical advice.</p></footer>
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
